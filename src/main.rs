@@ -1,42 +1,21 @@
-use rand::{thread_rng, seq::SliceRandom};
-
-#[derive(Debug)]
-#[allow(dead_code)]
-struct Deck {
-    cards: Vec<String>,
-}
-
-impl Deck {
-    fn new() -> Self {
-        let suits = ["Hearts", "Spades", "Diamond"];
-        let values = ["Ace", "Two", "Three"];
-        let mut cards = vec![];
-
-        for suit in suits {
-            for value in values {
-                let card = format!("{} of {}", value, suit);
-                cards.push(card);
-            }
-        }
-
-        Deck { cards }
-    }
-
-    fn shuffle(&mut self) {
-        let mut rng = thread_rng();
-        self.cards.shuffle(&mut rng);
-    }
-
-    fn deal(&mut self, num_cards: usize) -> Vec<String> {
-        self.cards.split_off(self.cards.len() - num_cards)
-    }
-}
-
+// continution of threads but here its about workloads dividing data into chunks and assigning each thread the chunk. 
 fn main() {
-    let mut deck = Deck::new();
-    deck.shuffle();
-    let cards = deck.deal(3);
+    const N_THREADS: usize = 8;
+    let to_add: Vec<u32> = (0..5000).collect();
+    let mut thread_handles = Vec::new();
+    let chunks = to_add.chunks(N_THREADS);  // dividing workflow into chunks 
 
-    println!("Here's your hand: {:#?}", cards);
-    println!("Here's your deck: {:#?}", deck);
+    for chunk in chunks {
+        let my_chunk = chunk.to_owned();
+        thread_handles.push(std::thread::spawn(move || {
+            my_chunk.iter().sum::<u32>()
+        }));
+    }
+
+    // Total of each chunk's sum 
+    let mut sum = 0;
+    for handle in thread_handles {
+        sum += handle.join().unwrap();
+    }
+    println!("Sum is {sum}");
 }
